@@ -542,6 +542,70 @@ body {
   #retry-btn { padding: 14px 36px; }
 }
 
+/* ─── モバイル横画面 ─── */
+@media (orientation: landscape) and (max-height: 600px) {
+  /* タイトル */
+  #title-main { font-size: clamp(32px, 8vh, 56px); }
+  #title-ep   { margin-bottom: 20px; }
+  #start-btn  { padding: 10px 36px; }
+
+  /* テキストボックスを薄く */
+  #textbox {
+    height: 138px;
+    height: calc(138px + env(safe-area-inset-bottom, 0px));
+    padding: 8px max(44px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(44px, env(safe-area-inset-left));
+  }
+  #speaker-name { font-size: 13px; margin-bottom: 5px; }
+  #main-text    { font-size: 13px; line-height: 1.7; min-height: 72px; }
+  #click-indicator {
+    bottom: calc(7px + env(safe-area-inset-bottom, 0px));
+    right: max(20px, env(safe-area-inset-right));
+  }
+
+  /* キャラクターを小さく */
+  .chara-slot {
+    width: min(24vw, 170px);
+    height: min(30vh, 160px);
+  }
+  #chara-area {
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    padding-left:  max(2vw, env(safe-area-inset-left));
+    padding-right: max(2vw, env(safe-area-inset-right));
+  }
+
+  /* 選択肢 */
+  #choices {
+    bottom: calc(145px + env(safe-area-inset-bottom, 0px));
+    width: min(600px, 60vw);
+    gap: 8px;
+  }
+  .choice-btn { padding: 12px 16px; font-size: 13px; }
+
+  /* UI ボタン */
+  #backlog-btn {
+    top: 8px;
+    right: max(10px, env(safe-area-inset-right));
+    min-height: 36px; padding: 7px 12px;
+  }
+  #title-btn {
+    top: 8px;
+    right: calc(max(10px, env(safe-area-inset-right)) + 74px);
+    min-height: 36px; padding: 7px 10px;
+  }
+
+  /* バックログ */
+  #backlog-header { padding: 10px 16px; }
+  #backlog-content { padding: 10px 16px 16px; }
+  .backlog-entry { padding: 9px 0; }
+  .backlog-text  { font-size: 13px; line-height: 1.65; }
+
+  /* エンディング */
+  #ending-content { padding: 16px 24px; }
+  #ending-title   { font-size: clamp(22px, 4vw, 32px); margin-bottom: 16px; }
+  #ending-text    { font-size: 13px; line-height: 1.7; margin-bottom: 20px; }
+  #retry-btn      { padding: 10px 32px; }
+}
+
 /* タッチデバイス: hover の代わりに :active でフィードバック */
 @media (hover: none) {
   .choice-btn:active {
