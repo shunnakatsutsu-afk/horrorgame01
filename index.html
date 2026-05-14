@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>鏡の怪 ― 消えた少女</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game">
+
+    <!-- タイトル画面 -->
+    <div id="title-screen">
+      <div id="title-bg"></div>
+      <div id="title-content">
+        <div id="title-sub">都市伝説捜査ファイル</div>
+        <div id="title-main">鏡　の　怪</div>
+        <div id="title-ep">― 消えた少女 ―</div>
+        <button id="start-btn" onclick="startGame()">捜 査 開 始</button>
+      </div>
+    </div>
+
+    <!-- メインゲーム画面 -->
+    <div id="main-screen" class="hidden">
+      <!-- 背景レイヤー -->
+      <div id="bg-layer"></div>
+
+      <!-- キャラクター立ち絵エリア -->
+      <div id="chara-area">
+        <div id="chara-left"  class="chara-slot hidden-chara"></div>
+        <div id="chara-right" class="chara-slot hidden-chara"></div>
+      </div>
+
+      <!-- テキストボックス -->
+      <div id="textbox">
+        <div id="speaker-name"></div>
+        <div id="main-text"></div>
+        <div id="click-indicator">▼</div>
+      </div>
+
+      <!-- 選択肢 -->
+      <div id="choices" class="hidden"></div>
+
+      <!-- バックログボタン / タイトルボタン -->
+      <button id="backlog-btn" onclick="openBacklog()">ログ&nbsp;[B]</button>
+      <button id="title-btn" onclick="returnToTitle()">タイトル</button>
+
+      <!-- バックログパネル -->
+      <div id="backlog-panel" class="hidden">
+        <div id="backlog-header">
+          <span>バックログ</span>
+          <span id="backlog-hint">B / Esc で閉じる</span>
+          <button id="backlog-close" onclick="closeBacklog()">✕ 閉じる</button>
+        </div>
+        <div id="backlog-content"></div>
+      </div>
+    </div>
+
+    <!-- エンディング画面 -->
+    <div id="ending-screen" class="hidden">
+      <div id="ending-bg"></div>
+      <div id="ending-content">
+        <div id="ending-label"></div>
+        <div id="ending-title"></div>
+        <div id="ending-text"></div>
+        <button id="retry-btn" onclick="retryGame()">最初から</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- スクリプト読み込み順：依存関係に合わせて -->
+  <script src="characters.js"></script>
+  <script src="backgrounds.js"></script>
+  <script src="audio.js"></script>
+  <script src="story.js"></script>
+  <script src="game.js"></script>
+  <script>
+    // 最初のユーザー操作でWebAudioContext初期化（ブラウザのautoplay制限対策）
+    (function() {
+      function initAudio() {
+        Audio.init();
+        document.removeEventListener('touchstart', initAudio);
+        document.removeEventListener('click', initAudio);
+        document.removeEventListener('keydown', initAudio);
+      }
+      document.addEventListener('touchstart', initAudio, { passive: true });
+      document.addEventListener('click', initAudio);
+      document.addEventListener('keydown', initAudio);
+    })();
+  </script>
+</body>
+</html>

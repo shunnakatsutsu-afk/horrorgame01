@@ -1,0 +1,10 @@
+# Python スクリプト（開発用）
+*.py
+__pycache__/
+*.pyc
+
+# 未使用の BGM ストック
+audio/stock/
+
+# 旧ファイル
+hayarigami/
