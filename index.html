@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>鏡の怪 ― 消えた少女</title>
+  <title>都市伝説捜査ファイル</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,9 +16,36 @@
       <div id="title-bg"></div>
       <div id="title-content">
         <div id="title-sub">都市伝説捜査ファイル</div>
-        <div id="title-main">鏡　の　怪</div>
-        <div id="title-ep">― 消えた少女 ―</div>
-        <button id="start-btn" onclick="startGame()">捜 査 開 始</button>
+        <div id="title-main">捜 査 選 択</div>
+        <div id="scenario-list">
+
+          <div class="scenario-card">
+            <div class="sc-header">
+              <div class="sc-number">No.01</div>
+              <div class="sc-title">鏡　の　怪</div>
+              <div class="sc-sub">消えた少女</div>
+            </div>
+            <div class="sc-desc">荻窪のアパートから少女が消えた。<br>残されたのは内側から割れた鏡だけ。</div>
+            <div class="sc-btns">
+              <button class="sc-btn sc-btn-new" onclick="startNew('kagami')">最 初 か ら</button>
+              <button class="sc-btn sc-btn-cont hidden" id="sc-cont-kagami" onclick="startContinue('kagami')">続 き か ら</button>
+            </div>
+          </div>
+
+          <div class="scenario-card">
+            <div class="sc-header">
+              <div class="sc-number">No.02</div>
+              <div class="sc-title">深夜の着信</div>
+              <div class="sc-sub">死者からの電話</div>
+            </div>
+            <div class="sc-desc">午前三時、死んだはずの親友から電話が来る。<br>声は確かに彼女のものだった。</div>
+            <div class="sc-btns">
+              <button class="sc-btn sc-btn-new" onclick="startNew('denwa')">最 初 か ら</button>
+              <button class="sc-btn sc-btn-cont hidden" id="sc-cont-denwa" onclick="startContinue('denwa')">続 き か ら</button>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
 
@@ -71,14 +98,15 @@
 
   </div>
 
-  <!-- スクリプト読み込み順：依存関係に合わせて -->
   <script src="characters.js"></script>
   <script src="backgrounds.js"></script>
   <script src="audio.js"></script>
-  <script src="story.js"></script>
+  <script src="story_kagami.js"></script>
+  <script src="story_denwa.js"></script>
   <script src="game.js"></script>
   <script>
-    // 最初のユーザー操作でWebAudioContext初期化（ブラウザのautoplay制限対策）
+    Game.init([STORY_KAGAMI, STORY_DENWA]);
+
     (function() {
       function initAudio() {
         Audio.init();

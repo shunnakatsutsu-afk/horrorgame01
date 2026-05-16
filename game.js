@@ -1,42 +1,72 @@
-/* ─── ゲームエンジン (バックログ・オーディオ・SVG背景 統合版) ─── */
+/* ─── ゲームエンジン (マルチストーリー + セーブ対応版) ─── */
 
 const Game = (() => {
   let currentNodeId = null;
-  let isTyping = false;
-  let typeTimer = null;
-  let fullText = '';
-  let typingSpeed = 38;
+  let currentStory  = null;
+  let isTyping      = false;
+  let typeTimer     = null;
+  let fullText      = '';
+  let typingSpeed   = 38;
+  let backlogOpen   = false;
+  let currentScene  = null;
+  let inputSetup    = false;
 
-  // バックログ
   const backlog = [];
-  let backlogOpen = false;
-
-  // ホラーシーン判定
-  const HORROR_SCENES = new Set(['bg-mirror']);
-  let currentScene = null;
+  const stories = {};
 
   const $ = id => document.getElementById(id);
 
-  /* ── 要素キャッシュ ── */
   const el = {
-    main:      () => $('main-screen'),
-    title:     () => $('title-screen'),
-    ending:    () => $('ending-screen'),
-    bg:        () => $('bg-layer'),
-    charaL:    () => $('chara-left'),
-    charaR:    () => $('chara-right'),
-    speaker:   () => $('speaker-name'),
-    mainText:  () => $('main-text'),
-    indicator: () => $('click-indicator'),
-    choices:   () => $('choices'),
-    endLabel:  () => $('ending-label'),
-    endTitle:  () => $('ending-title'),
-    endText:   () => $('ending-text'),
-    endBg:     () => $('ending-bg'),
-    logPanel:  () => $('backlog-panel'),
-    logContent:() => $('backlog-content'),
-    logBtn:    () => $('backlog-btn'),
+    main:       () => $('main-screen'),
+    title:      () => $('title-screen'),
+    ending:     () => $('ending-screen'),
+    bg:         () => $('bg-layer'),
+    charaL:     () => $('chara-left'),
+    charaR:     () => $('chara-right'),
+    speaker:    () => $('speaker-name'),
+    mainText:   () => $('main-text'),
+    indicator:  () => $('click-indicator'),
+    choices:    () => $('choices'),
+    endLabel:   () => $('ending-label'),
+    endTitle:   () => $('ending-title'),
+    endText:    () => $('ending-text'),
+    endBg:      () => $('ending-bg'),
+    logPanel:   () => $('backlog-panel'),
+    logContent: () => $('backlog-content'),
+    logBtn:     () => $('backlog-btn'),
   };
+
+  /* ── セーブ/ロード ── */
+  function saveKey(id) { return `hayarigami_save_${id}`; }
+
+  function saveGame() {
+    if (!currentStory || !currentNodeId) return;
+    try {
+      localStorage.setItem(saveKey(currentStory.id), JSON.stringify({
+        nodeId:  currentNodeId,
+        entries: backlog.slice()
+      }));
+    } catch (_) {}
+  }
+
+  function getSave(id) {
+    try {
+      const raw = localStorage.getItem(saveKey(id));
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  }
+
+  function clearSave(id) {
+    try { localStorage.removeItem(saveKey(id)); } catch (_) {}
+  }
+
+  function updateContinueBtns() {
+    Object.values(stories).forEach(s => {
+      const btn = $(`sc-cont-${s.id}`);
+      if (!btn) return;
+      getSave(s.id) ? btn.classList.remove('hidden') : btn.classList.add('hidden');
+    });
+  }
 
   /* ── テキストタイプライター ── */
   function typeText(text, onDone) {
@@ -67,12 +97,12 @@ const Game = (() => {
     isTyping = false;
     el.mainText().textContent = fullText;
     el.indicator().classList.remove('hidden');
-    const node = STORY.nodes[currentNodeId];
+    const node = currentStory && currentStory.nodes[currentNodeId];
     if (node && node.choices) showChoices(node.choices);
     return true;
   }
 
-  /* ── 背景セット (画像またはCSS) ── */
+  /* ── 背景セット ── */
   function setBg(sceneClass) {
     const bg = el.bg();
     bg.className = '';
@@ -101,7 +131,7 @@ const Game = (() => {
     if (!ch) return;
     const existing = elem.querySelector('img');
     if (existing && existing.dataset.chara === charaId) {
-      // 同じキャラなら再生成しない
+      // 同じキャラは再生成しない
     } else {
       const img = document.createElement('img');
       img.src = ch.img;
@@ -109,8 +139,7 @@ const Game = (() => {
       img.draggable = false;
       img.dataset.chara = charaId;
       img.onerror = () => {
-        // 画像が見つからない場合はプレースホルダー表示
-        elem.innerHTML = `<div class="chara-placeholder" style="background:${ch.color}22;border:2px dashed ${ch.color}44;color:${ch.color};display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:14px;border-radius:4px;">${ch.name}<br><span style="font-size:11px;opacity:0.6">images/</span></div>`;
+        elem.innerHTML = `<div class="chara-placeholder" style="background:${ch.color}22;border:2px dashed ${ch.color}44;color:${ch.color};display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:14px;border-radius:4px;">${ch.name}</div>`;
       };
       elem.innerHTML = '';
       elem.appendChild(img);
@@ -121,42 +150,36 @@ const Game = (() => {
 
   /* ── ノード描画 ── */
   function renderNode(nodeId) {
-    const node = STORY.nodes[nodeId];
+    const node = currentStory.nodes[nodeId];
     if (!node) { console.error('Node not found:', nodeId); return; }
     currentNodeId = nodeId;
 
     if (node.ending) { showEnding(node); return; }
 
-    // 背景
     setBg(node.scene);
 
-    // BGM切替
+    const horrorScenes = new Set(currentStory.horrorScenes || []);
     const prevScene = currentScene;
     currentScene = node.scene;
-    if (HORROR_SCENES.has(node.scene)) {
+    if (horrorScenes.has(node.scene)) {
       Audio.playBGM('horror');
       if (prevScene !== node.scene) Audio.playSFX('horror');
     } else {
       Audio.playBGM('normal');
     }
 
-    // キャラクター
     setChara('left',  node.left  || null, node.speaking === 'left');
     setChara('right', node.right || null, node.speaking === 'right');
 
-    // UI初期化
     el.choices().classList.add('hidden');
     el.choices().innerHTML = '';
     el.indicator().classList.remove('hidden');
     el.speaker().textContent = node.name || '';
 
-    // テキスト処理
     const text = (node.text || '').replace(/\\n/g, '\n');
-
-    // バックログに追記
     backlog.push({ name: node.name || '', text });
+    saveGame();
 
-    // タイプライター
     typeText(text, () => {
       if (node.choices && node.choices.length > 0) {
         showChoices(node.choices);
@@ -186,7 +209,7 @@ const Game = (() => {
 
   /* ── 次ノードへ ── */
   function advance(nodeId) {
-    const target = nodeId || STORY.nodes[currentNodeId]?.next;
+    const target = nodeId || currentStory.nodes[currentNodeId]?.next;
     if (!target) return;
     Audio.playSFX('scene');
     renderNode(target);
@@ -195,7 +218,7 @@ const Game = (() => {
   /* ── クリックハンドラ ── */
   function onScreenClick() {
     if (backlogOpen) return;
-    const node = STORY.nodes[currentNodeId];
+    const node = currentStory && currentStory.nodes[currentNodeId];
     if (!node) return;
     if (!el.choices().classList.contains('hidden')) return;
     if (skipTyping()) return;
@@ -207,6 +230,7 @@ const Game = (() => {
 
   /* ── エンディング ── */
   function showEnding(node) {
+    clearSave(currentStory.id);
     el.main().classList.add('hidden');
     const endEl = el.ending();
     endEl.className = '';
@@ -251,8 +275,10 @@ const Game = (() => {
     el.logBtn().style.display = '';
   }
 
-  /* ── キーボード・ホイール・タッチ ── */
+  /* ── 入力ハンドラ ── */
   function setupInputHandlers() {
+    if (inputSetup) return;
+    inputSetup = true;
     document.addEventListener('keydown', e => {
       if (e.key === 'b' || e.key === 'B') {
         backlogOpen ? closeBacklog() : openBacklog();
@@ -262,8 +288,6 @@ const Game = (() => {
     el.main().addEventListener('wheel', e => {
       if (e.deltaY < -30 && !backlogOpen) openBacklog();
     }, { passive: true });
-
-    // タッチ: 上スワイプでバックログを開く
     let touchStartY = 0;
     el.main().addEventListener('touchstart', e => {
       touchStartY = e.touches[0].clientY;
@@ -274,18 +298,42 @@ const Game = (() => {
     }, { passive: true });
   }
 
+  /* ── ゲーム開始共通処理 ── */
+  function beginStory(storyId) {
+    currentStory = stories[storyId];
+    currentScene = null;
+    Audio.init();
+    Audio.playBGM('normal');
+    el.title().classList.add('hidden');
+    el.main().classList.remove('hidden');
+    el.main().addEventListener('click', onScreenClick);
+    setupInputHandlers();
+  }
+
   /* ── 公開API ── */
   return {
-    start() {
-      Audio.init();
-      Audio.playBGM('normal');
-      el.title().classList.add('hidden');
-      el.main().classList.remove('hidden');
-      el.main().addEventListener('click', onScreenClick);
-      setupInputHandlers();
+    init(storyList) {
+      storyList.forEach(s => { stories[s.id] = s; });
+      Audio.playBGM('title');
+      updateContinueBtns();
+    },
+    startNew(id) {
+      clearSave(id);
+      backlog.length = 0;
+      beginStory(id);
       renderNode('start');
     },
+    startContinue(id) {
+      const save = getSave(id);
+      if (!save) { this.startNew(id); return; }
+      backlog.length = 0;
+      backlog.push(...save.entries);
+      beginStory(id);
+      renderNode(save.nodeId);
+    },
     retry() {
+      if (!currentStory) return;
+      clearSave(currentStory.id);
       backlog.length = 0;
       el.ending().classList.add('hidden');
       el.main().classList.remove('hidden');
@@ -295,8 +343,8 @@ const Game = (() => {
     returnToTitle() {
       backlog.length = 0;
       currentNodeId = null;
-      currentScene = null;
-      isTyping = false;
+      currentScene  = null;
+      isTyping      = false;
       clearInterval(typeTimer);
       closeBacklog();
       el.main().classList.add('hidden');
@@ -306,14 +354,16 @@ const Game = (() => {
       Audio.stopBGM(1200);
       Audio.playBGM('title');
       el.title().classList.remove('hidden');
+      updateContinueBtns();
     },
     openBacklog,
     closeBacklog,
   };
 })();
 
-function startGame() { Game.start(); }
-function retryGame() { Game.retry(); }
-function returnToTitle() { Game.returnToTitle(); }
-function openBacklog() { Game.openBacklog(); }
-function closeBacklog() { Game.closeBacklog(); }
+function startNew(id)      { Game.startNew(id); }
+function startContinue(id) { Game.startContinue(id); }
+function retryGame()       { Game.retry(); }
+function returnToTitle()   { Game.returnToTitle(); }
+function openBacklog()     { Game.openBacklog(); }
+function closeBacklog()    { Game.closeBacklog(); }
